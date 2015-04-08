@@ -1,0 +1,11 @@
+/*
+Theme Name:     Sporty Child
+Theme URI:      http://cyberchimps.com/cyberchimps-free/
+Description:    This child theme is dependant upon the Sporty Themeby Ossie Heffell
+Author:         Jimirings
+Author URI:     http://jimchristie.me
+Template:       sporty
+Version:        0.1
+*/
+
+@import "../sporty/style.css";
