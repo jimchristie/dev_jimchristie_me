@@ -44,11 +44,15 @@ class Mega_Menu_Settings{
         add_action( 'admin_post_megamenu_duplicate_theme', array( $this, 'duplicate_theme') );
 
         add_action( 'admin_post_megamenu_save_settings', array( $this, 'save_settings') );
-        add_action( 'admin_post_megamenu_clear_cache', array( $this, 'clear_cache') );
+        add_action( 'admin_post_megamenu_regenerate_css', array( $this, 'tools_regenerate_css') );
         add_action( 'admin_post_megamenu_delete_data', array( $this, 'delete_data') );
 
+        add_action( 'megamenu_page_theme_editor', array( $this, 'theme_editor_page'));
+        add_action( 'megamenu_page_tools', array( $this, 'tools_page'));
+        add_action( 'megamenu_page_general_settings', array( $this, 'general_settings_page'));
+
         add_action( 'admin_menu', array( $this, 'megamenu_themes_page') );
-        add_action( "admin_enqueue_scripts", array( $this, 'enqueue_theme_editor_scripts' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_theme_editor_scripts' ) );
 
     }
 
@@ -87,7 +91,29 @@ class Mega_Menu_Settings{
             unset( $saved_themes[ $theme ] );
         }
 
-        $saved_themes[ $theme ] = array_map( 'esc_attr', $_POST['settings'] );
+        $submitted_settings = $_POST['settings'];
+
+        if ( isset( $submitted_settings['checkboxes'] ) ) {
+
+            foreach ( $submitted_settings['checkboxes'] as $checkbox ) {
+
+                if ( isset( $submitted_settings[ $checkbox ] ) ) {
+
+                    $submitted_settings[ $checkbox ] = 'on';
+
+                } else {
+
+                    $submitted_settings[ $checkbox ] = 'off';
+
+                }
+
+            }
+
+            unset( $submitted_settings['checkboxes'] );
+
+        }
+
+        $saved_themes[ $theme ] = array_map( 'esc_attr', $submitted_settings );
 
         update_site_option( "megamenu_themes", $saved_themes );
 
@@ -103,13 +129,13 @@ class Mega_Menu_Settings{
      *
      * @since 1.5
      */
-    public function clear_cache() {
+    public function tools_regenerate_css() {
 
-        check_admin_referer( 'megamenu_clear_cache' );
+        check_admin_referer( 'megamenu_regenerate_css' );
 
-        delete_site_transient( 'megamenu_css' );
+        do_action( 'megamenu_generate_css' );
 
-        wp_redirect( admin_url( "themes.php?page=megamenu_settings&tab=tools&clear_cache=true" ) );
+        wp_redirect( admin_url( 'themes.php?page=megamenu_settings&tab=tools&regenerate_css=true' ) );
 
     }
 
@@ -124,7 +150,7 @@ class Mega_Menu_Settings{
         check_admin_referer( 'megamenu_delete_data' );
 
         // delete menu settings
-        delete_site_option("megamenu_settings");
+        delete_option("megamenu_settings");
 
         // delete all widgets assigned to menus
         $widget_manager = new Mega_Menu_Widget_Manager();
@@ -143,7 +169,7 @@ class Mega_Menu_Settings{
         delete_metadata( 'post', 0, '_megamenu', '', true );
 
         // clear cache
-        delete_site_transient( "megamenu_css" );
+        delete_transient( "megamenu_css" );
 
         // delete custom themes
         delete_site_option( "megamenu_themes" );
@@ -161,31 +187,19 @@ class Mega_Menu_Settings{
 
         check_admin_referer( 'megamenu_save_settings' );
 
-        $submitted_settings = array_map( 'esc_attr', $_POST['settings'] );
+        $submitted_settings = apply_filters( "megamenu_submitted_settings", $_POST['settings'] );
 
-        if ( ! isset( $submitted_settings['getting_started'] ) ) {
+        $existing_settings = get_option( 'megamenu_settings' );
 
-            $submitted_settings['getting_started'] = 'disabled';
+        $new_settings = array_merge( (array)$existing_settings, $submitted_settings );
 
-        }
-
-        if ( ! get_site_option( 'megamenu_settings' ) ) {
-
-            add_site_option( 'megamenu_settings', $submitted_settings );
-
-        } else {
-
-            $existing_settings = get_site_option( 'megamenu_settings' );
-
-            $new_settings = array_merge( $existing_settings, $submitted_settings );
- 
-            update_site_option( 'megamenu_settings', $new_settings );
-
-        }
+        $tab = isset( $_POST['tab'] ) ? $_POST['tab'] : 'general_settings';
+        
+        update_option( 'megamenu_settings', $new_settings );
 
         do_action("megamenu_after_save_general_settings");
 
-        wp_redirect( admin_url( "themes.php?page=megamenu_settings&tab=general_settings&saved=true" ) );
+        wp_redirect( admin_url( "themes.php?page=megamenu_settings&tab={$tab}&saved=true" ) );
 
     }
 
@@ -355,7 +369,7 @@ class Mega_Menu_Settings{
      * @param string $theme
      */
     public function theme_is_being_used_by_menu( $theme ) {
-        $settings = get_site_option( "megamenu_settings" );
+        $settings = get_option( "megamenu_settings" );
 
         if ( ! $settings ) {
             return false;
@@ -392,85 +406,14 @@ class Mega_Menu_Settings{
 
 
     /**
-     * Content for 'Getting Started' tab
-     *
-     * @since 1.4
-     */
-    public function getting_started() {
-
-        ?>
-
-        <h4 class='first'><?php _e("Menu Setup", "megamenu"); ?></h4>
-
-        <p><?php _e("Under", "megamenu"); ?> <a href='<?php echo admin_url( "nav-menus.php"); ?>'><?php _e("Appearance > Menus", "megamenu"); ?></a> <?php _e(", create a new menu (or use an existing menu). Ensure the Menu is tagged to a Theme Location under 'Menu Settings'.", "megamenu"); ?></p>
-
-        <p><?php _e("Once your menu is created and assigned to a location, you will see the settings for Mega Menu on the left hand side (under 'Mega Menu Settings').", "megamenu"); ?></p>
-
-        <p><?php _e("Check the 'Enable' checkbox and click 'Save'. Your menu will now be turned into a Mega Menu for the relevant Theme Location.", "megamenu"); ?></p>
-
-        <h4><?php _e("Creating Mega Menus", "megamenu"); ?></h4>
-
-        <p><?php _e("A Mega Menu is the name given to a large panel of content which is displayed below a menu item when the user clicks or hovers over the menu item.", "megamenu"); ?><p>
-
-        <p><?php _e("To create a Mega Menu Panel for one of your menu items:", "megamenu"); ?></p>
-
-        <ul class='bullets'>
-            <li><?php _e("Go to", "megamenu"); ?> <a href='<?php echo admin_url( "nav-menus.php"); ?>'><?php _e("Appearance > Menus", "megamenu"); ?></a></li>
-            <li><?php _e("Hover over the Menu Item which you wish to add a panel for (the Menu Item must be positioned at the top level)", "megamenu"); ?></li>
-            <li><?php _e("Click the 'Mega Menu' link, the menu item manager will load in a lightbox.", "megamenu"); ?></li>
-            <li><?php _e("Use the Widget Manager to add widgets to the panel. The Widget Manager will let you move, resize and configure your widgets.", "megamenu"); ?></li>
-            <li><i><?php _e("If you create a mega mega menu on a top level menu item, but your menu item also has sub menu items, the sub menu items will be listed before the Panel Widgets when you view the menu on your site.", "megamenu"); ?></i></li>
-        </ul>
-
-        <h4><?php _e("Customising your Menu", "megamenu"); ?></h4>
-
-        <p><?php _e("You'll find a theme editor to the left of this article (under 'Menu Themes') which allows you to edit the appearance of your Mega Menus.", "megamenu"); ?></p>
-
-        <p><?php _e("The Theme Editor allows you to modify all aspects of the Menu styling, including the font, color and size (height) of your menus.", "megamenu"); ?></p>
-
-        <p><?php _e("To apply your new theme to a menu go back to", "megamenu"); ?> <a href='<?php echo admin_url( "nav-menus.php"); ?>'><?php _e("Appearance > Menus", "megamenu"); ?></a> <?php _e("and select your new theme from the 'Theme' dropdown in the Mega Menu Settings.", "megamenu"); ?></p>
-
-        <h4><?php _e("More information", "megamenu"); ?></h4>
-
-        <ul>
-            <li><a href='http://www.maxmegamenu.com' target='_blank'><?php _e("Plugin homepage", "megamenu"); ?></a></li>
-            <li><a href='https://wordpress.org/support/plugin/megamenu/' target='_blank'><?php _e("Support forums", "megamenu"); ?></a></li>
-            <li><?php _e("Like the plugin?", "megamenu"); ?> <a href='https://wordpress.org/support/view/plugin-reviews/megamenu#postform' target='_blank'><?php _e("Please leave a review!", "megamenu"); ?></a></li>
-        </ul>
-
-        <?php
-    }
-
-    /**
-     *
-     * @since 1.4
-     */
-    public function getting_started_page_is_enabled() {
-
-        $saved_settings = get_site_option( "megamenu_settings" );
-
-        if ( ! isset( $saved_settings['getting_started'] ) ) {
-            return true;
-        }
-
-        if ( $saved_settings['getting_started'] == 'enabled' ) {
-            return true;
-        }
-
-        return false;
-
-    }
-
-    /**
      * Content for 'Settings' tab
      *
      * @since 1.4
      */
-    public function settings_page() {
-
-        $saved_settings = get_site_option( "megamenu_settings" );
+    public function general_settings_page( $saved_settings ) {
 
         $css = isset( $saved_settings['css'] ) ? $saved_settings['css'] : 'ajax';
+        $mobile_second_click = isset( $saved_settings['mobile_second_click'] ) ? $saved_settings['mobile_second_click'] : 'close';
 
         ?>
 
@@ -480,19 +423,9 @@ class Mega_Menu_Settings{
                 <input type="hidden" name="action" value="megamenu_save_settings" />
                 <?php wp_nonce_field( 'megamenu_save_settings' ); ?>
                 
-                <h4 class='first'><?php _e("Global Settings", "megamenu"); ?></h4>
+                <h4 class='first'><?php _e("General Settings", "megamenu"); ?></h4>
 
                 <table>
-                    <tr>
-                        <td class='mega-name'>
-                            <?php _e("Getting Started", "megamenu"); ?>
-                            <div class='mega-description'>
-                            </div>
-                        </td>
-                        <td class='mega-value'>
-                            <label><input type='checkbox' name='settings[getting_started]' value='enabled' <?php echo checked( $this->getting_started_page_is_enabled() ); ?> /><?php _e("Show the Getting Started page", "megamenu"); ?></label>
-                        </td>
-                    </tr>
                     <tr>
                         <td class='mega-name'>
                             <?php _e("CSS Output", "megamenu"); ?>
@@ -502,17 +435,37 @@ class Mega_Menu_Settings{
                         <td class='mega-value'>
                             <select name='settings[css]' id='mega_css'>
                                 <option value='ajax' <?php echo selected( $css == 'ajax'); ?>><?php _e("Enqueue dynamically via admin-ajax.php", "megamenu"); ?></option>
+                                <option value='fs' <?php echo selected( $css == 'fs'); ?>><?php _e("Save to filesystem", "megamenu"); ?></option>
                                 <option value='head' <?php echo selected( $css == 'head'); ?>><?php _e("Output in &lt;head&gt;", "megamenu"); ?></option>
                                 <option value='disabled' <?php echo selected( $css == 'disabled'); ?>><?php _e("Don't output CSS", "megamenu"); ?></option>
                             <select>
                             <div class='mega-description'>
                                 <div class='ajax' style='display: <?php echo $css == 'ajax' ? 'block' : 'none' ?>'><?php _e("Default. CSS will be enqueued dynamically through admin-ajax.php and loaded from the cache.", "megamenu"); ?></div>
+                                <div class='fs' style='display: <?php echo $css == 'fs' ? 'block' : 'none' ?>'><?php _e("CSS will be saved to wp-content/uploads/maxmegamenu/style.css and enqueued from there.", "megamenu"); ?></div>
                                 <div class='head' style='display: <?php echo $css == 'head' ? 'block' : 'none' ?>'><?php _e("CSS will be loaded from the cache in a &lt;style&gt; tag in the &lt;head&gt; of the page.", "megamenu"); ?></div>
                                 <div class='disabled' style='display: <?php echo $css == 'disabled' ? 'block' : 'none' ?>'><?php _e("CSS will not be output, you must enqueue the CSS for the menu manually.", "megamenu"); ?></div>
                             </div>
                         </td>
                     </tr>
+                    <tr>
+                        <td class='mega-name'>
+                            <?php _e("Click Event Behaviour", "megamenu"); ?>
+                            <div class='mega-description'>
+                                <?php _e("Define what should happen when the event is set to 'click'. This also applies to mobiles.", "megamenu"); ?>
+                            </div>
+                        </td>
+                        <td class='mega-value'>
+                            <select name='settings[second_click]'>
+                                <option value='close' <?php echo selected( $mobile_second_click == 'close'); ?>><?php _e("First click will open a sub menu, second click will close the sub menu.", "megamenu"); ?></option>
+                                <option value='go' <?php echo selected( $mobile_second_click == 'go'); ?>><?php _e("First click will open a sub menu, second click will follow the link.", "megamenu"); ?></option>
+                            <select>
+                            <div class='mega-description'>
+                            </div>
+                        </td>
+                    </tr>
                 </table>
+
+                <?php do_action( "megamenu_general_settings", $saved_settings ); ?>
 
                 <h4><?php _e("Menu Settings", "megamenu"); ?></h4>
 
@@ -536,20 +489,20 @@ class Mega_Menu_Settings{
      *
      * @since 1.4
      */
-    public function tools_page() {
+    public function tools_page( $saved_settings ) {
 
         ?>
 
         <div class='menu_settings'>
 
             <form action="<?php echo admin_url('admin-post.php'); ?>" method="post">
-                <?php wp_nonce_field( 'megamenu_clear_cache' ); ?>
-                <input type="hidden" name="action" value="megamenu_clear_cache" />
+                <?php wp_nonce_field( 'megamenu_regenerate_css' ); ?>
+                <input type="hidden" name="action" value="megamenu_regenerate_css" />
 
                 <h4 class='first'><?php _e("Cache", "megamenu"); ?></h4>
 
-                <input type='submit' class='button button-primary' name='clear-cache' value='<?php _e("Empty Cache", "megamenu"); ?>' />
-                <p><?php _e("Clear the CSS cache.", "megamenu"); ?></p>
+                <input type='submit' class='button button-primary' value='<?php _e("Regenerate CSS", "megamenu"); ?>' />
+                <p><?php _e("Regenerate the CSS.", "megamenu"); ?></p>
             </form>
 
             <form action="<?php echo admin_url('admin-post.php'); ?>" method="post">
@@ -558,7 +511,7 @@ class Mega_Menu_Settings{
 
                 <h4><?php _e("Plugin Data", "megamenu"); ?></h4>
 
-                <input type='submit' class='button button-primary confirm' name='clear-cache' value='<?php _e("Delete Data", "megamenu"); ?>' />
+                <input type='submit' class='button button-primary confirm' value='<?php _e("Delete Data", "megamenu"); ?>' />
                 <p><?php _e("Delete all saved Max Mega Menu plugin data from the database. Use with caution!", "megamenu"); ?></p>
             </form>
         </div>
@@ -574,73 +527,117 @@ class Mega_Menu_Settings{
      */
     public function page() {
 
+        $tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'general_settings';
+
+        $header_links = apply_filters( "megamenu_header_links", array(
+            'homepage' => array(
+                'url' => 'https://maxmegamenu.com/',
+                'text' => __("Homepage", "megamenu"),
+                'class' => ''
+            ),
+            'documentation' => array(
+                'url' => 'https://maxmegamenu.com/documentation/getting-started/installation/',
+                'text' => __("Documentation", "megamenu"),
+                'class' => ''
+            ),
+            'support' => array(
+                'url' => 'https://wordpress.org/support/plugin/megamenu/',
+                'text' => __("Support", "megamenu"),
+                'class' => ''
+            )
+        ) );
+
+        $versions = apply_filters( "megamenu_versions", array(
+            'core' => array(
+                'version' => MEGAMENU_VERSION,
+                'text' => __("Core version", "megamenu")
+            ),
+            'pro' => array(
+                'version' => "<a href='https://maxmegamenu.com/upgrade/?utm_source=free&amp;utm_medium=link&amp;utm_campaign=pro' target='_mmpro'>not installed</a>",
+                'text' => __("Pro extension", "megamenu")
+            )
+        ) );
+
         ?>
 
-            
-            <div class='megamenu_outer_wrap'>
-
-                <div class='megamenu_header'>
-                    <h2><?php _e("Max Mega Menu", "megamenu"); ?> <small>v<?php echo MEGAMENU_VERSION; ?></small></h2>
-                </div>
-                <div class='megamenu_wrap'>
-                    <div class='megamenu_right'>
-                        <?php $this->print_messages(); ?>
-
-                        <?php 
-
-                        if ( isset( $_GET['tab'] ) ) {
-
-                            switch( $_GET['tab'] ) {
-                                case "theme_editor" :
-                                    $this->theme_editor();
-                                    $active_tab = 'theme_editor';
-                                    break;
-                                case "general_settings" :
-                                    $this->settings_page();
-                                    $active_tab = 'general_settings';
-                                    break;
-                                case "tools" :
-                                    $this->tools_page();
-                                    $active_tab = 'tools';
-                                    break;
-                                default :
-                                    if ($this->getting_started_page_is_enabled() ) {
-                                        $this->getting_started();
-                                        $active_tab = 'getting_started';
-                                    } else {
-                                        $this->settings_page();
-                                        $active_tab = 'general_settings';
-                                    }
-                            }
-
-                        } else {
-
-                            if ($this->getting_started_page_is_enabled() ) {
-                                $this->getting_started();
-                                $active_tab = 'getting_started';
-                            } else {
-                                $this->settings_page();
-                                $active_tab = 'general_settings';
-                            }
-
+        <div class='megamenu_outer_wrap'>
+            <div class='megamenu_header_top'>
+                <ul>
+                    <?php
+                        foreach ( $header_links as $id => $data ) {
+                            echo "<li class='{$data['class']}'><a href='{$data['url']}'>{$data['text']}</a></li>";
                         }
+                    ?>
+                </ul>
+            </div>
+            <div class='megamenu_header'>
+                <div class='megamenu_header_left'>
+                    <h2><?php _e("Max Mega Menu", "megamenu"); ?></h2>
+                    <div class='version'>
+                        <?php
 
+                            $total = count( $versions );
+                            $count = 0;
+                            $separator = ' - ';
+
+                            foreach ( $versions as $id => $data ) {
+                                echo $data['text'] . ": <b>" . $data['version'] . "</b>";
+
+                                $count = $count + 1;
+
+                                if ( $total > 0 && $count != $total ) {
+                                    echo $separator;
+                                }
+                            }
                         ?>
                     </div>
                 </div>
-
-                <div class='megamenu_left'>
-                    <ul>
-                        <?php if ($this->getting_started_page_is_enabled() ) : ?>
-                        <li><a class='<?php echo $active_tab == 'getting_started' ? 'active' : '' ?>' href='<?php echo admin_url( "themes.php?page=megamenu_settings&tab=getting_started") ?>'><?php _e("Getting Started", "megamenu"); ?></a></li>                
-                        <?php endif; ?>
-                        <li><a class='<?php echo $active_tab == 'general_settings' ? 'active' : '' ?>' href='<?php echo admin_url( "themes.php?page=megamenu_settings&tab=general_settings") ?>'><?php _e("Global Settings", "megamenu"); ?></a></li>                
-                        <li><a class='<?php echo $active_tab == 'tools' ? 'active' : '' ?>' href='<?php echo admin_url( "themes.php?page=megamenu_settings&tab=tools") ?>'><?php _e("Tools", "megamenu"); ?></a></li>                
-                        <li><a class='<?php echo $active_tab == 'theme_editor' ? 'active' : '' ?>' href='<?php echo admin_url( "themes.php?page=megamenu_settings&tab=theme_editor") ?>'><?php _e("Menu Themes", "megamenu"); ?></a></li>
-                    </ul>
-                </div>
-
             </div>
+            <div class='megamenu_wrap'>
+                <div class='megamenu_right'>
+                    <?php $this->print_messages(); ?>
+
+                    <?php 
+
+                        $saved_settings = get_option("megamenu_settings");
+
+                        if ( has_action( "megamenu_page_{$tab}" ) ) {
+                            do_action( "megamenu_page_{$tab}", $saved_settings ); 
+                        }
+
+                    ?>
+                </div>
+            </div>
+
+            <div class='megamenu_left'>
+                <ul>
+                    <?php 
+
+                        $tabs = apply_filters("megamenu_menu_tabs", array(
+                            'general_settings' => __("General Settings", "megamenu"),
+                            'tools' => __("Tools", "megamenu"),
+                            'theme_editor' => __("Theme Editor", "megamenu")
+                        ));
+
+                        foreach ( $tabs as $key => $title ) {
+                            $class = $tab == $key ? 'active' : '';
+
+                            $url = add_query_arg(
+                                array(
+                                    'page'=>'megamenu_settings',
+                                    'tab' => $key
+                                ),
+                                admin_url("themes.php")
+                            );
+
+                            echo "<li><a class='{$class}' href='{$url}'>{$title}</a></li>";
+                        }
+
+                    ?>
+                </ul>
+            </div>
+
+        </div>
 
         <?php
     }
@@ -657,7 +654,28 @@ class Mega_Menu_Settings{
 
         $style_manager = new Mega_Menu_Style_Manager();
 
-        $test = $style_manager->generate_css_for_location( 'test', $this->active_theme, 0 );
+        $menu_id = 0;
+
+        $menus = get_registered_nav_menus();
+
+        if ( count( $menus ) ) {
+
+            $locations = get_nav_menu_locations();
+
+            foreach ($menus as $location => $description ) {
+    
+                if ( isset( $locations[ $location ] ) ) {
+
+                    $menu_id = $locations[ $location ];
+                    continue;
+
+                }
+    
+            }
+
+        }
+
+        $test = $style_manager->generate_css_for_location( 'test', $this->active_theme, $menu_id );
 
         if ( is_wp_error( $test ) ) {
             echo "<p class='fail'>" . $test->get_error_message() . "</p>";
@@ -667,8 +685,8 @@ class Mega_Menu_Settings{
             echo "<p class='fail'>" . __("Failed to delete theme. The theme is in use by a menu.", "megamenu") . "</p>";
         }
 
-        if ( isset( $_GET['clear_cache'] ) && $_GET['clear_cache'] == 'true' ) {
-            echo "<p class='success'>" . __("CSS cache cleared", "megamenu") . "</p>";
+        if ( isset( $_GET['regenerate_css'] ) && $_GET['regenerate_css'] == 'true' ) {
+            echo "<p class='success'>" . __("CSS cache cleared and CSS regenerated", "megamenu") . "</p>";
         }
 
         if ( isset( $_GET['delete_data'] ) && $_GET['delete_data'] == 'true' ) {
@@ -711,10 +729,6 @@ class Mega_Menu_Settings{
         foreach ( $this->themes as $id => $theme ) {
             $selected = $id == $this->id ? 'selected=selected' : '';
 
-            $style_manager = new Mega_Menu_Style_Manager();
-            $test = $style_manager->generate_css_for_location( 'tmp-location', $theme, 0 );
-            $error = is_wp_error( $test ) ? 'error' : '';
-
             $list_items .= "<option {$selected} value='" . admin_url("themes.php?page=megamenu_settings&tab=theme_editor&theme={$id}") . "'>{$theme['title']}</option>";
         }
 
@@ -749,9 +763,40 @@ class Mega_Menu_Settings{
      *
      * @since 1.0
      */
-    public function theme_editor() {
+    public function theme_editor_page( $saved_settings ) {
         
         $this->init();
+
+        $create_url = add_query_arg(
+            array(
+                'action'=>'megamenu_add_theme'
+            ),
+            wp_nonce_url( admin_url("admin-post.php"), 'megamenu_create_theme' )
+        );
+
+        $duplicate_url = add_query_arg(
+            array(
+                'action'=>'megamenu_duplicate_theme',
+                'theme_id' => $this->id
+            ),
+            wp_nonce_url( admin_url("admin-post.php"), 'megamenu_duplicate_theme' )
+        );
+
+        $delete_url = add_query_arg(
+            array(
+                'action'=>'megamenu_delete_theme',
+                'theme_id' => $this->id
+            ),
+            wp_nonce_url( admin_url("admin-post.php"), 'megamenu_delete_theme' )
+        );
+
+        $revert_url = add_query_arg(
+            array(
+                'action'=>'megamenu_revert_theme',
+                'theme_id' => $this->id
+            ),
+            wp_nonce_url( admin_url("admin-post.php"), 'megamenu_revert_theme' )
+        );
 
         ?>
 
@@ -759,7 +804,8 @@ class Mega_Menu_Settings{
 
             <div class='theme_selector'>
                 <?php _e("Select theme to edit", "megamenu"); ?> <?php echo $this->theme_selector(); ?> <?php _e("or", "megamenu"); ?>
-                <a class='' href='<?php echo wp_nonce_url(admin_url("admin-post.php?action=megamenu_add_theme"), 'megamenu_create_theme') ?>'><?php _e("create a new theme", "megamenu"); ?></a>
+                <a href='<?php echo $create_url ?>'><?php _e("create a new theme", "megamenu"); ?></a> <?php _e("or", "megamenu"); ?>
+                <a href='<?php echo $duplicate_url ?>'><?php _e("duplicate this theme", "megamenu"); ?></a>
             </div>
             
 
@@ -781,61 +827,47 @@ class Mega_Menu_Settings{
                     </tr>
                     <tr>
                         <td class='mega-name'>
-                            <?php _e("Arrow Up", "megamenu"); ?>
+                            <?php _e("Arrow", "megamenu"); ?>
                             <div class='mega-description'>
-                                <?php _e("Select the 'Up' arrow style.", "megamenu"); ?>
-                            </div>
-                        </td>
-                        <td class='mega-value'><?php $this->print_theme_arrow_option( 'arrow_up' ); ?></td>
-                    </tr>
-                    <tr>
-                        <td class='mega-name'>
-                            <?php _e("Arrow Down", "megamenu"); ?>
-                            <div class='mega-description'>
-                                <?php _e("Select the 'Down' arrow style.", "megamenu"); ?>
-                            </div>
-                        </td>
-                        <td class='mega-value'><?php $this->print_theme_arrow_option( 'arrow_down' ); ?></td>
-                    </tr>
-                    <tr>
-                        <td class='mega-name'>
-                            <?php _e("Arrow Left", "megamenu"); ?>
-                            <div class='mega-description'>
-                                <?php _e("Select the 'Left' arrow style.", "megamenu"); ?>
-                            </div>
-                        </td>
-                        <td class='mega-value'><?php $this->print_theme_arrow_option( 'arrow_left' ); ?></td>
-                    </tr>
-                    <tr>
-                        <td class='mega-name'>
-                            <?php _e("Arrow Right", "megamenu"); ?>
-                            <div class='mega-description'>
-                                <?php _e("Select the 'Right' arrow style.", "megamenu"); ?>
-                            </div>
-                        </td>
-                        <td class='mega-value'><?php $this->print_theme_arrow_option( 'arrow_right' ); ?></td>
-                    </tr>
-                    <tr>
-                        <td class='mega-name'>
-                            <?php _e("Main Font", "megamenu"); ?>
-                            <div class='mega-description'>
-                                <?php _e("Set the main font to use for panel contents and flyout menu items.", "megamenu"); ?>
+                                <?php _e("Select the arrow styles.", "megamenu"); ?>
                             </div>
                         </td>
                         <td class='mega-value'>
-                            <?php $this->print_theme_color_option( 'font_color' ); ?>
-                            <?php $this->print_theme_freetext_option( 'font_size' ); ?>
-                            <?php $this->print_theme_font_option( 'font_family' ); ?>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Up", "megamenu"); ?></span>
+                                <?php $this->print_theme_arrow_option( 'arrow_up' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Down", "megamenu"); ?></span>
+                                <?php $this->print_theme_arrow_option( 'arrow_down' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Left", "megamenu"); ?></span>
+                                <?php $this->print_theme_arrow_option( 'arrow_left' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Right", "megamenu"); ?></span>
+                                <?php $this->print_theme_arrow_option( 'arrow_right' ); ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
                         <td class='mega-name'>
                             <?php _e("Responsive Breakpoint", "megamenu"); ?>
                             <div class='mega-description'>
-                                <?php _e("Set the width at which the menu turns into a mobile menu.", "megamenu"); ?>
+                                <?php _e("Set the width at which the menu turns into a mobile menu. Set to 0 to disable responsive menu.", "megamenu"); ?>
                             </div>
                         </td>
                         <td class='mega-value'><?php $this->print_theme_freetext_option( 'responsive_breakpoint' ); ?></td>
+                    </tr>
+                    <tr>
+                        <td class='mega-name'>
+                            <?php _e("Responsive Menu Text", "megamenu"); ?>
+                            <div class='mega-description'>
+                                <?php _e("Text to display next to the mobile toggle icon.", "megamenu"); ?>
+                            </div>
+                        </td>
+                        <td class='mega-value'><?php $this->print_theme_freetext_option( 'responsive_text' ); ?></td>
                     </tr>
                     <tr>
                         <td class='mega-name'>
@@ -854,6 +886,15 @@ class Mega_Menu_Settings{
                             </div>
                         </td>
                         <td class='mega-value'><?php $this->print_theme_freetext_option( 'z_index' ); ?></td>
+                    </tr>
+                    <tr>
+                        <td class='mega-name'>
+                            <?php _e("Shadow", "megamenu"); ?>
+                            <div class='mega-description'>
+                                <?php _e("Apply a shadow to mega and flyout menus.", "megamenu"); ?>
+                            </div>
+                        </td>
+                        <td class='mega-value'><?php $this->print_theme_checkbox_option( 'shadow' ); ?></td>
                     </tr>
                 </table>
 
@@ -930,6 +971,17 @@ class Mega_Menu_Settings{
                             </label>
                         </td>
                     </tr>
+                    <tr>
+                        <td class='mega-name'>
+                            <?php _e("Menu Items Align", "megamenu"); ?>
+                            <div class='mega-description'> 
+                                <?php _e("Align all menu items to the left (default), centrally or to the right. To align a single menu item to the right, use the Mega Menu options for the menu item.", "megamenu"); ?>
+                            </div>
+                        </td>
+                        <td class='mega-value'>
+                            <?php $this->print_theme_align_option( 'menu_item_align' ); ?>
+                        </td>
+                    </tr>
                 </table>
 
                 <h4><?php _e("Top Level Menu Items", "megamenu"); ?></h4>
@@ -1001,10 +1053,30 @@ class Mega_Menu_Settings{
                             </div>
                         </td>
                         <td class='mega-value'>
-                            <?php $this->print_theme_color_option( 'menu_item_link_color' ); ?>
-                            <?php $this->print_theme_freetext_option( 'menu_item_link_font_size' ); ?>
-                            <?php $this->print_theme_font_option( 'menu_item_link_font' ); ?>
-                            <?php $this->print_theme_weight_option( 'menu_item_link_weight' ); ?>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Color", "megamenu"); ?></span>
+                                <?php $this->print_theme_color_option( 'menu_item_link_color' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Size", "megamenu"); ?></span>
+                                <?php $this->print_theme_freetext_option( 'menu_item_link_font_size' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Family", "megamenu"); ?></span>
+                                <?php $this->print_theme_font_option( 'menu_item_link_font' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Transform", "megamenu"); ?></span>
+                                <?php $this->print_theme_transform_option( 'menu_item_link_text_transform' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Weight", "megamenu"); ?></span>
+                                <?php $this->print_theme_weight_option( 'menu_item_link_weight' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Decoration", "megamenu"); ?></span>
+                                <?php $this->print_theme_text_decoration_option( 'menu_item_link_text_decoration' ); ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
@@ -1015,19 +1087,18 @@ class Mega_Menu_Settings{
                             </div>
                         </td>
                         <td class='mega-value'>
-                            <?php $this->print_theme_color_option( 'menu_item_link_color_hover' ); ?>
-                            <?php $this->print_theme_weight_option( 'menu_item_link_weight_hover' ); ?>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class='mega-name'>
-                            <?php _e("Text Transform", "megamenu"); ?>
-                            <div class='mega-description'>
-                                <?php _e("Set the padding for the headings. Use this to set the gap between the widget heading and the widget content.", "megamenu"); ?>
-                            </div>
-                        </td>
-                        <td class='mega-value'>
-                            <?php $this->print_theme_transform_option( 'menu_item_link_text_transform' ); ?>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Color", "megamenu"); ?></span>
+                                <?php $this->print_theme_color_option( 'menu_item_link_color_hover' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Weight", "megamenu"); ?></span>
+                                <?php $this->print_theme_weight_option( 'menu_item_link_weight_hover' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Decoration", "megamenu"); ?></span>
+                                <?php $this->print_theme_text_decoration_option( 'menu_item_link_text_decoration_hover' ); ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
@@ -1082,6 +1153,38 @@ class Mega_Menu_Settings{
                             </label>
                         </td>
                     </tr>
+                    <tr>
+                        <td class='mega-name'>
+                            <?php _e("Menu Item Divider", "megamenu"); ?>
+                            <div class='mega-description'>
+                                <?php _e("Show a small divider bar between each menu item.", "megamenu"); ?>
+                            </div>
+                        </td>
+                        <td class='mega-value'>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Enabled", "megamenu"); ?></span>
+                                <?php $this->print_theme_checkbox_option( 'menu_item_divider' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Color", "megamenu"); ?></span>
+                                <?php $this->print_theme_color_option( 'menu_item_divider_color' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Glow Opacity", "megamenu"); ?></span>
+                                <?php $this->print_theme_freetext_option( 'menu_item_divider_glow_opacity' ); ?>
+                            </label>
+                            
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class='mega-name'>
+                            <?php _e("Highlight Current Item", "megamenu"); ?>
+                            <div class='mega-description'>
+                                <?php _e("Apply the 'hover' styling to current menu items.", "megamenu"); ?>
+                            </div>
+                        </td>
+                        <td class='mega-value'><?php $this->print_theme_checkbox_option( 'menu_item_highlight_current' ); ?></td>
+                    </tr>
                 </table>
 
                 <h4><?php _e("Mega Panels", "megamenu"); ?></h4>
@@ -1109,7 +1212,7 @@ class Mega_Menu_Settings{
                         <td class='mega-name'>
                             <?php _e("Panel Width", "megamenu"); ?>
                             <div class='mega-description'>
-                                <?php _e("Mega Panel width. Note: A 100% wide panel will only ever be as wide as the menu itself. For a fixed panel width set this to a pixel value.", "megamenu"); ?>
+                                <?php _e("Mega Panel width. Note: A 100% wide panel will only ever be as wide as the menu itself. For a fixed panel width set this to a pixel value. Advanced: enter a jQuery selector to align the sub menu to a page element.", "megamenu"); ?>
                             </div>
                         </td>
                         <td class='mega-value'>
@@ -1232,21 +1335,52 @@ class Mega_Menu_Settings{
                             </div>
                         </td>
                         <td class='mega-value'>
-                            <?php $this->print_theme_color_option( 'panel_header_color' ); ?>
-                            <?php $this->print_theme_freetext_option( 'panel_header_font_size' ); ?>
-                            <?php $this->print_theme_font_option( 'panel_header_font' ); ?>
-                            <?php $this->print_theme_weight_option( 'panel_header_font_weight' ); ?>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Color", "megamenu"); ?></span>
+                                <?php $this->print_theme_color_option( 'panel_header_color' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Size", "megamenu"); ?></span>
+                                <?php $this->print_theme_freetext_option( 'panel_header_font_size' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Family", "megamenu"); ?></span>
+                                <?php $this->print_theme_font_option( 'panel_header_font' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Weight", "megamenu"); ?></span>
+                                <?php $this->print_theme_weight_option( 'panel_header_font_weight' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Transform", "megamenu"); ?></span>
+                                <?php $this->print_theme_transform_option( 'panel_header_text_transform' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Decoration", "megamenu"); ?></span>
+                                <?php $this->print_theme_text_decoration_option( 'panel_header_text_decoration' ); ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
                         <td class='mega-name'>
-                            <?php _e("Heading Text Transform", "megamenu"); ?>
+                            <?php _e("Content Font", "megamenu"); ?>
                             <div class='mega-description'>
-                                <?php _e("Set the text transform style for the Widget Headers and second level menu items.", "megamenu"); ?>
+                                <?php _e("Set the font to use for panel contents.", "megamenu"); ?>
                             </div>
                         </td>
                         <td class='mega-value'>
-                            <?php $this->print_theme_transform_option( 'panel_header_text_transform' ); ?>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Color", "megamenu"); ?></span>
+                                <?php $this->print_theme_color_option( 'panel_font_color' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Size", "megamenu"); ?></span>
+                                <?php $this->print_theme_freetext_option( 'panel_font_size' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Family", "megamenu"); ?></span>
+                                <?php $this->print_theme_font_option( 'panel_font_family' ); ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
@@ -1397,24 +1531,84 @@ class Mega_Menu_Settings{
                     </tr>
                     <tr>
                         <td class='mega-name'>
-                            <?php _e("Font Weight", "megamenu"); ?>
+                            <?php _e("Rounded Corners", "megamenu"); ?>
                             <div class='mega-description'>
-                                <?php _e("Set the font weight for the flyout menu items.", "megamenu"); ?>
+                                <?php _e("Set rounded corners for flyout menus. Rounded corners will be applied to all flyout menu levels.", "megamenu"); ?>
                             </div>
                         </td>
                         <td class='mega-value'>
-                            <?php $this->print_theme_weight_option( 'flyout_link_weight' ); ?>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Top Left", "megamenu"); ?></span>
+                                <?php $this->print_theme_freetext_option( 'flyout_border_radius_top_left' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Top Right", "megamenu"); ?></span>
+                                <?php $this->print_theme_freetext_option( 'flyout_border_radius_top_right' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Bottom Right", "megamenu"); ?></span>
+                                <?php $this->print_theme_freetext_option( 'flyout_border_radius_bottom_right' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Bottom Left", "megamenu"); ?></span>
+                                <?php $this->print_theme_freetext_option( 'flyout_border_radius_bottom_left' ); ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
                         <td class='mega-name'>
-                            <?php _e("Font Weight (Hover)", "megamenu"); ?>
+                            <?php _e("Font", "megamenu"); ?>
+                            <div class='mega-description'>
+                                <?php _e("Set the font for the flyout menu items.", "megamenu"); ?>
+                            </div>
+                        </td>
+                        <td class='mega-value'>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Color", "megamenu"); ?></span>
+                                <?php $this->print_theme_color_option( 'flyout_link_color' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Size", "megamenu"); ?></span>
+                                <?php $this->print_theme_freetext_option( 'flyout_link_size' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Family", "megamenu"); ?></span>
+                                <?php $this->print_theme_font_option( 'flyout_link_family' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Transform", "megamenu"); ?></span>
+                                <?php $this->print_theme_transform_option( 'flyout_link_text_transform' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Weight", "megamenu"); ?></span>
+                                <?php $this->print_theme_weight_option( 'flyout_link_weight' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Decoration", "megamenu"); ?></span>
+                                <?php $this->print_theme_text_decoration_option( 'flyout_link_text_decoration' ); ?>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class='mega-name'>
+                            <?php _e("Font (Hover)", "megamenu"); ?>
                             <div class='mega-description'>
                                 <?php _e("Set the font weight for the flyout menu items (on hover).", "megamenu"); ?>
                             </div>
                         </td>
                         <td class='mega-value'>
-                            <?php $this->print_theme_weight_option( 'flyout_link_weight_hover' ); ?>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Color", "megamenu"); ?></span>
+                                <?php $this->print_theme_color_option( 'flyout_link_color_hover' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Weight", "megamenu"); ?></span>
+                                <?php $this->print_theme_weight_option( 'flyout_link_weight_hover' ); ?>
+                            </label>
+                            <label>
+                                <span class='mega-short-desc'><?php _e("Decoration", "megamenu"); ?></span>
+                                <?php $this->print_theme_text_decoration_option( 'flyout_link_text_decoration_hover' ); ?>
+                            </label>
                         </td>
                     </tr>
                 </table>
@@ -1434,41 +1628,98 @@ class Mega_Menu_Settings{
                             <?php $this->print_theme_textarea_option( 'custom_css' ); ?>
                             <p><b><?php _e("Custom Styling Tips", "megamenu"); ?></b></p>
                             <ul class='custom_styling_tips'>
-                                <li><code>#{$wrap}</code> <?php _e("converts to the ID selector of the menu wrapper, e.g. div#mega-menu-wrap-primary-14", "megamenu"); ?></li>
-                                <li><code>#{$menu}</code> <?php _e("converts to the ID selector of the menu, e.g. ul#mega-menu-primary-1", "megamenu"); ?></li>
+                                <li><code>#{$wrap}</code> <?php _e("converts to the ID selector of the menu wrapper, e.g. div#mega-menu-wrap-primary", "megamenu"); ?></li>
+                                <li><code>#{$menu}</code> <?php _e("converts to the ID selector of the menu, e.g. ul#mega-menu-primary", "megamenu"); ?></li>
                                 <li><?php _e("Use @import rules to import CSS from other plugins or your theme directory, e.g:"); ?>
                                 <br /><br /><code>#{$wrap} #{$menu} {<br />&nbsp;&nbsp;&nbsp;&nbsp;@import "shortcodes-ultimate/assets/css/box-shortcodes.css";<br />}</code></li>
                             </ul>
                         </td>
                     </tr>
-
                 </table>
 
-                <?php
-
-                submit_button();
-
-                ?>
-
-                <?php if ( $this->string_contains( $this->id, array("custom") ) ) : ?>
-
-                    <a class='delete confirm' href='<?php echo wp_nonce_url(admin_url("admin-post.php?action=megamenu_delete_theme&theme_id={$this->id}"), 'megamenu_delete_theme') ?>'><?php _e("Delete Theme", "megamenu"); ?></a>
-
-                <?php else : ?>
-
-                    <a class='revert confirm' href='<?php echo wp_nonce_url(admin_url("admin-post.php?action=megamenu_revert_theme&theme_id={$this->id}"), 'megamenu_revert_theme') ?>'><?php _e("Revert Changes", "megamenu"); ?></a>
-
-                <?php endif; ?>
-
-                <a class='duplicate' href='<?php echo wp_nonce_url(admin_url("admin-post.php?action=megamenu_duplicate_theme&theme_id={$this->id}"), 'megamenu_duplicate_theme') ?>'><?php _e("Duplicate Theme", "megamenu"); ?></a>
-
-                </form>
+                <div class='megamenu_submit'>
+                    <div class='mega_left'>
+                        <?php submit_button(); ?>
+                    </div>
+                    <div class='mega_right'>
+                        <?php if ( $this->string_contains( $this->id, array("custom") ) ) : ?>
+                            <a class='delete confirm' href='<?php echo $delete_url; ?>'><?php _e("Delete Theme", "megamenu"); ?></a>
+                        <?php else : ?>
+                            <a class='revert confirm' href='<?php echo $revert_url; ?>'><?php _e("Revert Theme", "megamenu"); ?></a>
+                        <?php endif; ?>
+                    </div>
+                </div>
 
             </div>
 
         <?php
 
     }
+
+
+    /**
+     * Print a select dropdown with left, center and right options
+     *
+     * @since 1.6.1
+     * @param string $key
+     * @param string $value
+     */
+    public function print_theme_align_option( $key ) {
+
+        $value = $this->active_theme[$key];
+
+        ?>
+
+            <select name='settings[<?php echo $key ?>]'>
+                <option value='left' <?php selected( $value, 'left' ); ?>><?php _e("Left", "megamenu") ?></option>
+                <option value='center' <?php selected( $value, 'center' ); ?>><?php _e("Center", "megamenu") ?></option>
+                <option value='right' <?php selected( $value, 'right' ); ?>><?php _e("Right", "megamenu") ?></option>
+            </select>
+
+        <?php
+    }
+
+    /**
+     * Print a select dropdown with text decoration options
+     *
+     * @since 1.6.1
+     * @param string $key
+     * @param string $value
+     */
+    public function print_theme_text_decoration_option( $key ) {
+
+        $value = $this->active_theme[$key];
+
+        ?>
+
+            <select name='settings[<?php echo $key ?>]'>
+                <option value='none' <?php selected( $value, 'none' ); ?>><?php _e("None", "megamenu") ?></option>
+                <option value='underline' <?php selected( $value, 'underline' ); ?>><?php _e("Underline", "megamenu") ?></option>
+            </select>
+
+        <?php
+    }
+
+
+    /**
+     * Print a checkbox option
+     *
+     * @since 1.6.1
+     * @param string $key
+     * @param string $value
+     */
+    public function print_theme_checkbox_option( $key ) {
+
+        $value = $this->active_theme[$key];
+
+        ?>
+
+            <input type='hidden' name='checkboxes[<?php echo $key ?>]' />
+            <input type='checkbox' name='settings[<?php echo $key ?>]' <?php checked( $value, 'on' ); ?> />
+
+        <?php
+    }
+
 
     /**
      * Print an arrow dropdown selection box
@@ -1485,7 +1736,6 @@ class Mega_Menu_Settings{
 
         ?>
             <select class='icon_dropdown' name='settings[<?php echo $key ?>]'>
-
                 <?php 
 
                     echo "<option value='disabled'>" . __("Disabled", "megamenu") . "</option>";
@@ -1500,9 +1750,9 @@ class Mega_Menu_Settings{
             </select>
             <span class="selected_icon <?php echo $arrow_icons[$value] ?>"></span>
 
-
         <?php
     }
+
 
     /**
      * Print a colorpicker

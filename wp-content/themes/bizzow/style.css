@@ -1,14 +1,17 @@
 /*
 Theme Name: Bizzow
 Theme URI: http://underscores.me/
-Author: Jim Christie
-Author URI: http://www.jimchristie.me/
+Author: Underscores.me
+Author URI: http://underscores.me/
 Description: Description
 Version: 1.0.0
 License: GNU General Public License v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: bizzow
 Tags:
+
+This theme, like WordPress, is licensed under the GPL.
+Use it to make something cool, have fun, and share what you've learned with others.
 
 Bizzow is based on Underscores http://underscores.me/, (C) 2012-2015 Automattic, Inc.
 
@@ -190,7 +193,6 @@ button,
 html input[type="button"],
 input[type="reset"],
 input[type="submit"] {
-    -moz-appearance: button;
 	-webkit-appearance: button;
 	cursor: pointer;
 }
@@ -222,14 +224,12 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 input[type="search"] {
-    -moz-appearance: textfield;
 	-webkit-appearance: textfield;
 	box-sizing: content-box;
 }
 
 input[type="search"]::-webkit-search-cancel-button,
 input[type="search"]::-webkit-search-decoration {
-    -moz-appearance: none;
 	-webkit-appearance: none;
 }
 
@@ -426,8 +426,7 @@ input[type="submit"] {
 	border-radius: 3px;
 	background: #e6e6e6;
 	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 15px 17px rgba(255, 255, 255, 0.5), inset 0 -5px 12px rgba(0, 0, 0, 0.05);
-    color: rgb(51, 51, 51);
-    color: rgba(0, 0, 0, .8);
+	color: rgba(0, 0, 0, .8);
 	font-size: 12px;
 	font-size: 0.75rem;
 	line-height: 1;
@@ -484,7 +483,6 @@ input[type="search"] {
 }
 
 textarea {
-    box-sizing: border-box;
 	padding-left: 3px;
 	width: 100%;
 }

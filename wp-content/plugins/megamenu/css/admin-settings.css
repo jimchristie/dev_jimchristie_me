@@ -53,9 +53,7 @@
 	text-decoration: none!important;
 	margin-right: 0;
 }
-.nav-tab-active {
-	background: white;
-}
+
 .appearance_page_megamenu_settings .megamenu_right {
 	margin-left: 190px;
 	padding: 20px;
@@ -82,8 +80,10 @@
 	text-decoration: none;
 }
 .appearance_page_megamenu_settings .theme_selector {
-	float: right;
-	margin-top: -3px;
+	background: #fbfbfb;
+	padding: 10px;
+	border: 1px solid #e5e5e5;
+	margin-bottom: 33px;
 }
 .appearance_page_megamenu_settings h3 {
 	margin: 0 0 40px 0;
@@ -94,14 +94,56 @@
 .appearance_page_megamenu_settings .megamenu_outer_wrap {
 	padding: 20px 20px 0 0;
 }
+.appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_submit {
+	margin-bottom: 40px;
+}
+.appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_submit .mega_left,
+.appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_submit .mega_right {
+    float: left;
+    width: 50%;
+}
+.appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_submit p {
+	margin: 0;
+	padding: 0;	
+}
+.appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_submit .mega_right {
+	text-align: right;
+}
+.appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_submit .mega_right a {
+	color: red;
+}
 .appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_header {
 	background: white;
-	padding: 30px 0 30px 17px;
+	padding: 10px 17px;
 	border-bottom: 1px solid #f1f1f1;
+	float: left;
+	width: 100%;
+	box-sizing: border-box;
 }
-.appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_header h2 {
-	padding: 0;
+
+.appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_header .version {
+	font-style: italic;
+	color: #888;
+	margin-bottom: 15px;
+}
+
+
+.appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_header_top {
+	font-size: 0.9em;
+	display: block;
+	width: 100%;
+	height: 30px;
+	line-height: 30px;
+	margin-bottom: 10px;
+	box-sizing: border-box;
+}
+.appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_header_top ul {
 	margin: 0;
+	float: right;
+}
+.appearance_page_megamenu_settings .megamenu_outer_wrap .megamenu_header_top ul li {
+	display: inline-block;
+	margin: 0 0 0 10px;
 }
 .appearance_page_megamenu_settings .megamenu_wrap {
 	background: white;
@@ -146,6 +188,13 @@
 	line-height: 28px;
 	vertical-align: top;
 }
+.appearance_page_megamenu_settings .megamenu_right .menu_settings table input[type=number] {
+	height: auto;
+	line-height: 1.2em;
+}
+.appearance_page_megamenu_settings .megamenu_right .menu_settings table label {
+	margin-right: 10px;
+}
 .appearance_page_megamenu_settings .megamenu_right .menu_settings table input.mega-setting-title {
 	width: 100px;
 }
@@ -171,15 +220,16 @@
 }
 .appearance_page_megamenu_settings .megamenu_right .menu_settings table input {
 	width: 70px;
-	margin-right: 20px;
 }
 .appearance_page_megamenu_settings .megamenu_right .menu_settings table label {
     font-size: 0.9em;
 }
+.appearance_page_megamenu_settings .megamenu_right .menu_settings table input[type=submit] {
+	width: auto;
+}
 .appearance_page_megamenu_settings .megamenu_right .menu_settings table input[type=checkbox] {
 	width: 16px;
 	height: 16px;
-	margin-right: 10px;
 	vertical-align: middle;
 }
 .appearance_page_megamenu_settings .megamenu_right .menu_settings table {
@@ -222,10 +272,14 @@
 	margin: 0 0 20px 0;
 }
 
+.appearance_page_megamenu_settings .megamenu_right .menu_settings select.icon_dropdown {
+	margin-right: 0;
+}
 .appearance_page_megamenu_settings .megamenu_right .menu_settings .selected_icon::before {
 	font: 400 20px/1 dashicons;
 	speak: none;
-	padding: 5px 0 0 5px;
+	padding: 5px 0 0 0;
+	margin-right: 20px;
 	display: inline-block;
 	vertical-align: top;
 	-webkit-font-smoothing: antialiased;
@@ -256,7 +310,7 @@
 	box-shadow: 0 1px 0 rgba(0,0,0,.08);
 	border: 1px solid #ccc;
 	font-size: 0.9em;
-	margin-right: 20px;
+	margin-right: 10px;
 	float: left;
 }
 

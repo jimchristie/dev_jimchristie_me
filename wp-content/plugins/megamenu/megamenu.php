@@ -2,13 +2,13 @@
 
 /*
  * Plugin Name: Max Mega Menu
- * Plugin URI:  http://www.maxmegamenu.com
+ * Plugin URI:  https://maxmegamenu.com
  * Description: Mega Menu for WordPress.
- * Version:     1.5.1
+ * Version:     1.7.2
  * Author:      Tom Hemsley
- * Author URI:  http://www.maxmegamenu.com
+ * Author URI:  https://maxmegamenu.com
  * License:     GPL-2.0+
- * Copyright:   2015 Tom Hemsley
+ * Copyright:   2015 Tom Hemsley (https://maxmegamenu.com)
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -26,7 +26,7 @@ final class Mega_Menu {
 	/**
 	 * @var string
 	 */
-	public $version = '1.5.1';
+	public $version = '1.7.2';
 
 
 	/**
@@ -48,46 +48,25 @@ final class Mega_Menu {
 		$this->define_constants();
 		$this->includes();
 
-		add_filter( 'wp_nav_menu_args', array( $this, 'modify_nav_menu_args' ), 9999 );
-		add_filter( 'wp_nav_menu', array( $this, 'add_responsive_toggle' ), 10, 2 );
-		add_filter( 'megamenu_nav_menu_css_class', array( $this, 'prefix_menu_classes' ) );
 		add_action( 'init', array( $this, 'load_plugin_textdomain' ) );
-		add_filter( 'wp_nav_menu_objects', array( $this, 'add_widgets_to_menu' ), 10, 2 );
-
+		add_action( 'admin_init', array( $this, 'install_upgrade_check' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 
-        add_action( 'megamenu_after_save_settings', array( $this, 'clear_caches' ) );
-        add_action( 'megamenu_after_save_settings', array( $this, 'regenerate_css' ) );
-
-        add_action( 'megamenu_after_widget_add', array( $this, 'clear_caches' ) );
-        add_action( 'megamenu_after_widget_save', array( $this, 'clear_caches' ) );
-        add_action( 'megamenu_after_widget_delete', array( $this, 'clear_caches' ) );
-
-		add_action( 'megamenu_after_theme_save', array( $this, 'regenerate_css') );
-		add_action( 'megamenu_after_theme_delete', array( $this, 'regenerate_css') );
-		add_action( 'megamenu_after_theme_revert', array( $this, 'regenerate_css') );
-		add_action( 'megamenu_after_theme_duplicate', array( $this, 'regenerate_css') );
-		add_action( 'megamenu_after_theme_create', array( $this, 'regenerate_css') );
-
-		add_action( 'megamenu_after_install', array( $this, 'record_version_number') );
-		add_action( 'megamenu_after_install', array( $this, 'regenerate_css') );
-		add_action( 'megamenu_after_update', array( $this, 'record_version_number') );
-		add_action( 'megamenu_after_update', array( $this, 'regenerate_css') );
+		add_filter( 'wp_nav_menu_args', array( $this, 'modify_nav_menu_args' ), 9999 );
+		add_filter( 'wp_nav_menu', array( $this, 'add_responsive_toggle' ), 10, 2 );
+		add_filter( 'wp_nav_menu_objects', array( $this, 'add_widgets_to_menu' ), 10, 2 );
+		add_filter( 'megamenu_nav_menu_css_class', array( $this, 'prefix_menu_classes' ) );
 
 		register_deactivation_hook( __FILE__, array( $this, 'delete_version_number') );
 
 		add_shortcode( 'maxmenu', array( $this, 'register_shortcode' ) );
 		
-		add_action( 'after_switch_theme', array( $this, 'regenerate_css') );	
-
-		if ( is_admin() ) {
+		if ( is_admin() && current_user_can('edit_theme_options') ) {
 
 			new Mega_Menu_Nav_Menus();
 			new Mega_Menu_Widget_Manager();
 			new Mega_Menu_Menu_Item_Manager();
 			new Mega_Menu_Settings();
-
-			$this->install_upgrade_check();
 
 		}
 
@@ -108,37 +87,22 @@ final class Mega_Menu {
 
 			if ( version_compare( $this->version, $version, '>' ) ) {
 
+				update_option( "megamenu_version", $this->version );
+
 				do_action( "megamenu_after_update" );
 				
 			}
 
 		} else {
 
-			do_action( "megamenu_after_install" );
-
-		}		
-
-	}
-
-
-	/**
-	 * Store the current version number
-	 *
-	 * @since 1.3
-	 */
-	public function record_version_number() {
-
-		if ( get_option( "megamenu_version" ) ) {
-
-			update_option( "megamenu_version", $this->version );
-
-		} else {
-
 			add_option( "megamenu_version", $this->version );
 
+			do_action( "megamenu_after_install" );
+
 		}
-		
+
 	}
+
 
 	/**
 	 * Store the current version number
@@ -179,7 +143,9 @@ final class Mega_Menu {
 	 * @since 1.0
      */
     public function load_plugin_textdomain() {
+
         load_plugin_textdomain( 'megamenu', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
+
     }
 
 
@@ -227,7 +193,7 @@ final class Mega_Menu {
 
 		$autoload_is_disabled = defined( 'MEGAMENU_AUTOLOAD_CLASSES' ) && MEGAMENU_AUTOLOAD_CLASSES === false;
 
-		if ( function_exists( "spl_autoload_register" ) && ! ( $autoload_is_disabled ) ) {
+		if ( function_exists( "spl_autoload_register" ) && ! $autoload_is_disabled ) {
 
 			// >= PHP 5.2 - Use auto loading
 			if ( function_exists( "__autoload" ) ) {
@@ -302,14 +268,13 @@ final class Mega_Menu {
 		if ( ! is_a( $args->walker, 'Mega_Menu_Walker' ) )
 			return $nav_menu;
 		
-		$toggle_id = 'mega-menu-toggle-' . $args->theme_location . '-' . $args->menu;
+		$toggle_id = apply_filters("megamenu_toggle_id", "mega-menu-toggle-{$args->theme_location}", $args->menu, $args->theme_location );
 
 		$toggle_class = 'mega-menu-toggle';
 
 		$find = 'class="' . $args->container_class . '">';
 
-		$replace = $find . '<input type="checkbox" id="' . $toggle_id . '" class="' . $toggle_class . '">
-							<label for="'. $toggle_id . '"></label>';
+		$replace = $find . '<div class="' . $toggle_class . '"></div>';
 
 		return str_replace( $find, $replace, $nav_menu );
 	}
@@ -334,11 +299,18 @@ final class Mega_Menu {
 
 		$default_columns = apply_filters("megamenu_default_columns", 1);
 
+		// apply saved metadata to each menu item
 		foreach ( $items as $item ) {
 
 	        $saved_settings = array_filter( (array) get_post_meta( $item->ID, '_megamenu', true ) );
 
 	        $item->megamenu_settings = array_merge( Mega_Menu_Nav_Menus::get_menu_item_defaults(), $saved_settings );
+
+	    }
+
+	    $items = apply_filters( "megamenu_nav_menu_objects_before", $items, $args );
+
+	    foreach ( $items as $item ) {
 
 			// only look for widgets on top level items
 			if ( $item->menu_item_parent == 0 && $item->megamenu_settings['type'] == 'megamenu' ) {
@@ -386,6 +358,8 @@ final class Mega_Menu {
 			}
 		}
 
+	    $items = apply_filters( "megamenu_nav_menu_objects_after", $items, $args );
+
 		return $items;    
 	}
 
@@ -401,45 +375,57 @@ final class Mega_Menu {
 	 */
 	public function modify_nav_menu_args( $args ) {
 
-		$settings = get_site_option( 'megamenu_settings' );
-
+		$settings = get_option( 'megamenu_settings' );
 		$current_theme_location = $args['theme_location'];
 
 		$locations = get_nav_menu_locations();
 
 		if ( isset ( $settings[ $current_theme_location ]['enabled'] ) && $settings[ $current_theme_location ]['enabled'] == true ) {
 
+			if ( ! isset( $locations[ $current_theme_location ] ) ) {
+				return $args;
+			}
+			
 			$menu_id = $locations[ $current_theme_location ];
 
 			if ( ! $menu_id ) {
 				return $args;
 			}
 
+			$style_manager = new Mega_Menu_Style_Manager();
+			$themes = $style_manager->get_themes();
+
+			$menu_theme = $themes[ $settings[ $current_theme_location ]['theme'] ];
+
 			$menu_settings = $settings[ $current_theme_location ];
-			$mega_menu_layout = isset( $menu_settings['layout'] ) ? $menu_settings['layout'] : 'horizontal';
-			$event = isset( $menu_settings['event'] ) ? $menu_settings['event'] : 'hover';
-			$effect = isset( $menu_settings['effect'] ) ? $menu_settings['effect'] : 'disabled';
 
 			$wrap_attributes = apply_filters("megamenu_wrap_attributes", array(
 				"id" => '%1$s',
 				"class" => '%2$s mega-no-js',
-				"data-event" => $event,
-				"data-effect" => $effect
-			), $menu_id, $menu_settings );
+				"data-event" => isset( $menu_settings['event'] ) ? $menu_settings['event'] : 'hover',
+				"data-effect" => isset( $menu_settings['effect'] ) ? $menu_settings['effect'] : 'disabled',
+				"data-panel-width" => preg_match('/^\d/', $menu_theme['panel_width']) !== 1 ? $menu_theme['panel_width'] : '',
+				"data-second-click" => isset( $settings['second_click'] ) ? $settings['second_click'] : 'close',
+				"data-breakpoint" => absint( $menu_theme['responsive_breakpoint'] )
+			), $menu_id, $menu_settings, $settings, $current_theme_location );
 
 			$attributes = "";
 
 			foreach( $wrap_attributes as $attribute => $value ) {
-				$attributes .= " " . $attribute . '="' . $value . '"';
+				if ( strlen( $value ) ) {
+					$attributes .= " " . $attribute . '="' . $value . '"';
+				}
 			}
+
+			$sanitized_location = str_replace( apply_filters("megamenu_location_replacements", array("-", " ") ), "-", $current_theme_location );
 
 			$defaults = array(
 				'menu'            => $menu_id,
 				'container'       => 'div',
 				'container_class' => 'mega-menu-wrap',
-				'container_id'    => 'mega-menu-wrap-' . $current_theme_location . '-' . $menu_id,
-				'menu_class'      => 'mega-menu mega-menu-' . $mega_menu_layout,
-				'menu_id'         => 'mega-menu-' . $current_theme_location . '-' . $menu_id,
+				'container_id'    => 'mega-menu-wrap-' . $sanitized_location,
+				'menu_class'      => 'mega-menu mega-menu-horizontal',
+				'menu_id'         => 'mega-menu-' . $sanitized_location,
 				'fallback_cb'     => 'wp_page_menu',
 				'before'          => '',
 				'after'           => '',
@@ -450,7 +436,7 @@ final class Mega_Menu {
 				'walker'          => new Mega_Menu_Walker()
 			);
 
-			$args = array_merge( $args, $defaults );
+			$args = array_merge( $args, apply_filters( "megamenu_nav_menu_args", $defaults, $menu_id, $current_theme_location ) );
 		}
 
 		return $args;
@@ -512,35 +498,6 @@ final class Mega_Menu {
 	}
 
 
-    /**
-     * Clear the cache when the Mega Menu is updated.
-     *
-     * @since 1.0
-     */
-    public function clear_caches() {
-
-        // https://wordpress.org/plugins/widget-output-cache/
-        if ( function_exists( 'menu_output_cache_bump' ) ) {
-            menu_output_cache_bump();
-        }
-
-        // https://wordpress.org/plugins/widget-output-cache/
-        if ( function_exists( 'widget_output_cache_bump' ) ) {
-            widget_output_cache_bump();
-        }
-
-    }
-
-
-    /**
-     * Regenerate the CSS for the menu's. The generated CSS is then cached.
-     *
-     * @since 1.2
-     */
-    public function regenerate_css() {
-        $style_manager = new Mega_Menu_Style_Manager();
-        $style_manager->empty_cache();
-    }
 }
 
 add_action( 'plugins_loaded', array( 'Mega_Menu', 'init' ), 10 );

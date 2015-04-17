@@ -14,22 +14,23 @@
 
         panel.log = function (message) {
             if (window.console && console.log) {
-                console.log(message);
+                console.log(message.data);
             }
 
-            if (message == -1) {
-                alert(megamenu.nonce_check_failed);
+            if (message.success !== true) {
+                alert(message.data);
             }
         };
 
 
         panel.init = function () {
-            panel.log(megamenu.debug_launched + " " + panel.settings.menu_item_id);
+            panel.log({success: true, data: megamenu.debug_launched + " " + panel.settings.menu_item_id});
 
             $.colorbox({
                 html: "",
                 initialWidth: '991',
-                scrolling: false,
+                scrolling: true,
+                fixed: true,
                 top: '10%',
                 initialHeight: '500'
             });
@@ -55,7 +56,7 @@
                     $('#cboxLoadingOverlay').remove();
                 },
                 success: function(response) { 
-                    var json = $.parseJSON(response);
+                    var json = $.parseJSON(response.data);
 
                     var header_container = $("<div />").addClass("mm_header_container");
 
@@ -73,6 +74,24 @@
 
                         var content = $("<div />").addClass('mm_content').addClass(idx).html(this.content).hide();
 
+                        // bind save button action
+                        content.find('form').on("submit", function (e) {
+
+                            start_saving();
+
+                            e.preventDefault();
+
+                            var data = $(this).serialize();
+
+                            $.post(ajaxurl, data, function (submit_response) {
+
+                                end_saving();
+
+                                panel.log(submit_response);
+                            });
+
+                        });
+
                         if (idx == 'menu_icon') {
                         
                             var form = content.find('form');
@@ -84,11 +103,11 @@
 
                                 e.preventDefault();
 
+                                $("input", form).not(e.target).removeAttr('checked');
+
                                 var data = $(this).serialize();
 
-                                var post = data + '&action=mm_save_menu_item_icon&_wpnonce=' + megamenu.nonce + '&menu_item_id=' + panel.settings.menu_item_id;
-
-                                $.post(ajaxurl, post, function (submit_response) {
+                                $.post(ajaxurl, data, function (submit_response) {
 
                                     end_saving();
 
@@ -100,27 +119,6 @@
 
                         if (idx == 'general_settings') {
                         
-                            var form = content.find('form');
-
-                            // bind save button action
-                            form.on("submit", function (e) {
-
-                                start_saving();
-
-                                e.preventDefault();
-
-                                var data = $(this).serialize();
-
-                                var post = data + '&action=mm_save_menu_item_settings&_wpnonce=' + megamenu.nonce + '&menu_item_id=' + panel.settings.menu_item_id;
-
-                                $.post(ajaxurl, post, function (submit_response) {
-
-                                    end_saving();
-
-                                    panel.log(submit_response);
-                                });
-
-                            });
                         }
 
                         if (idx == 'mega_menu') {
@@ -143,17 +141,21 @@
                                         _wpnonce: megamenu.nonce
                                     };
 
-                                    $.post(ajaxurl, postdata, function (widget_html) {
+                                    $.post(ajaxurl, postdata, function (response) {
 
                                         end_saving();
 
                                         $(".no_widgets").hide();
 
-                                        var widget = $(widget_html);
+                                        var widget = $(response.data);
 
                                         add_events_to_widget(widget);
 
                                         $("#widgets").append(widget);
+
+                                        // reset the dropdown
+                                        selector.val('disabled');
+
                                     });
 
                                 }
@@ -236,7 +238,7 @@
 
                         }
 
-                        var tab = $("<div />").addClass('mm_tab').html(this.title).css('cursor', 'pointer').on('click', function() {
+                        var tab = $("<div />").addClass('mm_tab').addClass(idx).html(this.title).css('cursor', 'pointer').on('click', function() {
                             $(".mm_content").hide();
                             $(".mm_tab").removeClass('active');
                             $(this).addClass('active');
@@ -253,6 +255,7 @@
                         content_container.append(content);
                     });
 
+                    $('#cboxLoadedContent').trigger('megamenu_content_loaded');
                     $('#cboxLoadedContent').addClass('depth-' + panel.settings.menu_item_depth).append(header_container).append(tabs_container).append(content_container);
                     $('#cboxLoadedContent').css({'width': '100%', 'height': '100%', 'display':'block'});
                 }
@@ -289,7 +292,7 @@
 
                 start_saving();
 
-                var position = $(this).index();
+                var position = $(".widget").not(".sub_menu").index(widget);
 
                 $.post(ajaxurl, {
                     action: "mm_move_widget",
@@ -521,4 +524,13 @@ jQuery(function ($) {
         $('.item-title', menu_item).append(button);
     });
 
+    $(".mm_tabs li").live('click', function() {
+        var tab = $(this);
+        var tab_id = $(this).attr('rel');
+
+        tab.addClass('active');
+        tab.siblings().removeClass('active');
+        tab.parent().siblings().hide();
+        tab.parent().siblings("." + tab_id).show();
+    });
 });
