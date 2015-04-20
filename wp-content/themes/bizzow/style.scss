@@ -25,3 +25,15 @@ body {
         width: 95%;
     }
 }
+#primary {
+    float: left;
+    width: 66.6%;
+}
+#primary.page-full {
+    width: 100%;
+}
+#secondary {
+    float: right;
+    width: 30%;
+}
+#copyright { text-align: center; }
