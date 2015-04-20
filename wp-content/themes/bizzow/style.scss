@@ -16,10 +16,9 @@ Bizzow is based on Underscores http://underscores.me/, (C) 2012-2015 Automattic,
 @import 'reset.scss';
 
 body {
-    width: 80%;
+    width: 90%;
 	margin: 10px auto;
     margin: 1rem auto;
-    overflow: hidden;
 }
 @media screen and (max-width: 600px){
     body {
