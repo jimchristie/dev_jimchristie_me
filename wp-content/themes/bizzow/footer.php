@@ -12,9 +12,7 @@
 
 	<footer id="colophon" class="site-footer" role="contentinfo">
 		<div class="site-info">
-			<a href="<?php echo esc_url( __( 'http://wordpress.org/', 'bizzow' ) ); ?>"><?php printf( __( 'Proudly powered by %s', 'bizzow' ), 'WordPress' ); ?></a>
-			<span class="sep"> | </span>
-			<?php printf( __( 'Theme: %1$s by %2$s.', 'bizzow' ), 'Bizzow', '<a href="http://underscores.me/" rel="designer">Underscores.me</a>' ); ?>
+            <p id="copyright">Jim Christie &copy; <?php echo date('Y'); ?></p>
 		</div><!-- .site-info -->
 	</footer><!-- #colophon -->
 </div><!-- #page -->
