@@ -447,9 +447,9 @@ a:active {
   left: -999em;
   top: 0; }
 
-.main-navigation ul ul a {
-  width: 200px; }
-
+/*.main-navigation ul ul a {
+	width: 200px;
+}*/
 .main-navigation ul li:hover > ul,
 .main-navigation ul li.focus > ul {
   left: auto; }
@@ -719,6 +719,15 @@ body {
 @media screen and (max-width: 600px) {
   body {
     width: 95%; } }
+nav a {
+  display: block;
+  padding: 5px 10px;
+  padding: 0.5rem 1rem; }
+
+.main-navigation ul ul {
+  top: 30px;
+  top: 3rem; }
+
 #primary {
   float: left;
   width: 66.6%; }
