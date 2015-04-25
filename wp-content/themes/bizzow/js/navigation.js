@@ -79,3 +79,85 @@
 		}
 	}
 } )();
+
+/*  Let's add distributed nav items for large screens */
+
+jQuery(document).ready(function($){
+    
+    // global vars
+    var mainNav = $(".main-navigation"),
+        mainNavRect,
+        thisLiRect,
+        thisLiWidth,
+        adjustedNavWidths,
+        totalNativeNavLiWidth = 0,
+        innerLiHtmlWidth,
+        smallNativeNavLiWidth = 0;
+    
+    // get the top level nav elements
+    var topLevelNavLiElements = $(".main-navigation ul").children("li").not("ul ul li"),
+        allNavLiElements = mainNav.find("li");
+    
+    // get the total width of the navbar
+    for (var i = 0; i < topLevelNavLiElements.length; i++ ){
+        thisLiRect = topLevelNavLiElements[i].getBoundingClientRect();
+        thisLiWidth = thisLiRect.right - thisLiRect.left;
+        totalNativeNavLiWidth += thisLiWidth;
+    }
+    
+    //remove the left and right padding from the elements so that we can measure the width of the li elements without it
+    $(allNavLiElements).children("a").css("padding", "0");
+
+    // recalculate the width of the nav li elements
+    for (var j = 0; j < topLevelNavLiElements.length; j++){   
+        thisLiRect = topLevelNavLiElements[j].getBoundingClientRect();
+        thisLiWidth = thisLiRect.right - thisLiRect.left;
+        smallNativeNavLiWidth += thisLiWidth;
+    }
+    
+    // reset the default padding on the li elements
+    $(allNavLiElements).children("a").css("padding", "");
+    
+    
+    function setLiWidths(){
+        var emptySpace,
+            newPadding;
+        
+        // get the width of the main-navigation div
+        mainNavRect = mainNav[0].getBoundingClientRect();
+        mainNavWidth = mainNavRect.right - mainNavRect.left;
+        console.log("mainNavWidth = " + mainNavWidth);
+        
+        emptySpace = mainNavWidth - smallNativeNavLiWidth;
+        console.log("smallNativeLiWidth = " + smallNativeNavLiWidth);
+        console.log("emptySpace = " + emptySpace);
+        
+        newPadding = ( emptySpace / topLevelNavLiElements.length ) / 2;
+
+        if ( mainNavWidth > totalNativeNavLiWidth ){
+            $(topLevelNavLiElements).children("a").css({"padding-left": newPadding, "padding-right": newPadding});
+            
+            // set  width of sub-menus
+            $(".sub-menu").css("width", $(this).parent("li").width() );
+            
+            
+            $("ul.sub-menu").each(function(){
+                $(this).width($(this).parent().width());
+            });
+
+            
+            
+        } else if ( mainNavWidth <= totalNativeNavLiWidth ) {
+            $(topLevelNavLiElements).children("a").css({"padding": ""});
+        } else {
+            console.log("Failure. Something goes wrong.");
+        }
+    }
+    setLiWidths();
+    $(window).resize(function(){
+        setLiWidths();
+    });
+    
+    
+    
+});
