@@ -12,6 +12,11 @@ Tags:
 
 Bizzow is based on Underscores http://underscores.me/, (C) 2012-2015 Automattic, Inc.
 */
+/*****************************************************
+
+These are the default styles that came from Underscores (with a few tweaks here and there)
+
+*****************************************************/
 /*--------------------------------------------------------------
 # Normalize
 --------------------------------------------------------------*/
@@ -436,10 +441,8 @@ a:active {
   text-decoration: none; }
 
 .main-navigation ul ul {
-  box-shadow: 0 3px 3px rgba(0, 0, 0, 0.2);
   float: left;
   position: absolute;
-  top: 1.5em;
   left: -999em;
   z-index: 99999; }
 
@@ -724,9 +727,13 @@ nav a {
   padding: 5px 10px;
   padding: 0.5rem 1rem; }
 
-.main-navigation ul ul {
-  top: 30px;
-  top: 3rem; }
+/*********** Temp for diagnosing menu problems ************/
+nav li {
+  background-color: #eee; }
+
+/**********************************************************/
+.main-navigation ul ul li {
+  width: 100%; }
 
 #primary {
   float: left;
