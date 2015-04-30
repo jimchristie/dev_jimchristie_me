@@ -102,7 +102,7 @@ add_action( 'widgets_init', 'bizzow_widgets_init' );
 function bizzow_scripts() {
 	wp_enqueue_style( 'bizzow-style', get_stylesheet_uri() );
     
-    wp_enqueue_script('google-jquery', '//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js', array(), null, true);
+    wp_enqueue_script('google-jquery', 'https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js', array(), null, true);
 
 	wp_enqueue_script( 'bizzow-navigation', get_template_directory_uri() . '/js/navigation.js', array( 'google-jquery' )/*, '20120206',*/, null, true );
 
