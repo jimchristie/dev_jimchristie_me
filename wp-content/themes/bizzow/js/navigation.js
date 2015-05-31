@@ -80,9 +80,11 @@
 	}
 } )();
 
-/*  Let's add distributed nav items for large screens */
-
 jQuery(document).ready(function($){
+    
+    
+
+    /*  Let's add distributed nav items for large screens */
     
     // global vars
     var mainNav = $(".main-navigation"),
@@ -157,6 +159,145 @@ jQuery(document).ready(function($){
     $(window).resize(function(){
         setLiWidths();
     });
+    
+    
+    
+    /* Let's make dropdown menus activate on click */
+    
+    
+    // override css hover rules on page load
+    var disableMenuHover = function(){
+        $(".menu-item-has-children").mouseenter(function(){
+            $(this).children("ul").css("left", "-999em");
+        });
+    }
+    disableMenuHover();
+    
+    $("body").on("click", function(){
+        $(".main-navigation").removeClass("showing-sub-navs");
+        $(".menu-item-has-children ul").css("left", "-999em");
+    });
+    
+    $(".menu-item-has-children").mouseout(function(){
+        $(this).removeClass("focus");
+    });
+    
+    $(".main-navigation .menu-item-has-children a").on("click", function(e){
+        if ( !$(".main-navigation").hasClass("showing-sub-navs")){
+            $(this).parent(".menu-item-has-children").children("ul").css("left","auto");
+            e.stopPropagation();
+            e.preventDefault();
+            $(".main-navigation").addClass("showing-sub-navs");
+        } else {
+            $(".main-navigation").removeClass("showing-sub-navs");
+        }
+        
+    });
+    
+    $("li.menu-item-has-children").hover(
+        function(){
+        
+            //get parent and child elements
+            var parentLI = $(this).parents("li.menu-item-has-children"),
+                childUL = $(this).children("ul");
+            console.log ( parentLI.length );
+            if ( $(".main-navigation").hasClass("showing-sub-navs") ){
+                $(".menu-item-has-children").not(parentLI).children("ul").css("left", "-999em");
+                // different behavior for second and third level navs
+                if ( !$(this).parents(".menu-item-has-children").length > 0 ){
+                    // second level navs 
+                    $(childUL).css("left", "auto");
+                } else {
+                    // third level navs
+                    $(childUL).css("left", "100%");
+                }
+            }
+        },
+        function(){
+            // do I need to do anything here?
+        }
+    );
+    
+    
+    
+    
+    
+    
+    
+    
+    /*
+    var hideSubNavs = function(){
+        /*$(".menu-item-has-children").removeClass("clicked");
+        $(".menu-item-has-children ul").css("left", "");
+        disableMenuHover();
+    }
+    
+    $("body").on("click", function(){
+        hideSubNavs();
+    });
+    
+    
+    
+    
+    
+    
+    
+    var disableMenuHover = function(){
+        $(".menu-item-has-children").hover(
+            function(){
+                $(this).children("ul").css("left", "-999px");
+            },
+            function(){
+                $(this).children("ul").css("");
+            }
+        );
+    }
+    disableMenuHover();
+    /*
+    
+    var reEnableMenuHover = function(){
+        $(".menu-item-has-children").hover(
+            function(){
+                $(".menu-item-has-children ul").css("left", "");
+            },
+            function(){
+                
+            }
+        )
+    }
+    
+    $(".menu-item-has-children > a").on("click", function(e){
+        
+        // hide any other nav menus that may be open
+        hideSubNavs();
+        reEnableMenuHover();
+        
+        //get parent and child elements
+        var thisParent = $(this).parent("li"),
+            childUL = $(thisParent).children("ul");
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        /*
+        if ( !(thisParent).hasClass("clicked") ){
+        // show subnavs
+            $(thisParent).addClass("clicked");
+            // different behavior for second and third level navs
+            if ( !$(thisParent).parents(".menu-item-has-children").length > 0 ){
+                // second level navs 
+                $(childUL).css("left", "auto");
+            } else {
+                // third level navs
+                $(childUL).css("left", "100%");
+            }
+        } else {
+        // hide subnavs
+            $(childUL).css("left", "");
+            $(thisParent).removeClass("clicked");
+        }
+    */
+    
     
     
     
