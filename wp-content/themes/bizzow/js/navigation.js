@@ -164,46 +164,47 @@ jQuery(document).ready(function($){
     
     /* Let's make dropdown menus activate on click */
     
-    
     // override css hover rules on page load
-    var disableMenuHover = function(){
-        $(".menu-item-has-children").mouseenter(function(){
-            $(this).children("ul").css("left", "-999em");
-        });
-    }
-    disableMenuHover();
+    $(".menu-item-has-children").mouseenter(function(){
+        $(this).children("ul").css("left", "-999em");
+    });
     
+    
+    // hide all menus when clicking outside the menu
     $("body").on("click", function(){
         $(".main-navigation").removeClass("showing-sub-navs");
         $(".menu-item-has-children ul").css("left", "-999em");
     });
     
-    $(".menu-item-has-children").mouseout(function(){
-        $(this).removeClass("focus");
-    });
+    // make all top level nav items with children navigation controls instead of navigating to pages
     $(".nav-menu > .menu-item-has-children > a").on("click", function(e){
         e.preventDefault();
     });
     
+    // remove focus from an element when mouse leaves
+    $(".menu-item-has-children").mouseout(function(){
+        $(this).removeClass("focus");
+    });
+    
     $(".main-navigation .menu-item-has-children a").on("click", function(e){
-            //e.stopPropagation();
         if ( !$(".main-navigation").hasClass("showing-sub-navs")){
+            // show this submenu and and activate hover behavior when clicking a top level nav item with a dropdown
             $(this).parent(".menu-item-has-children").children("ul").css("left","auto");
             e.stopPropagation();
             e.preventDefault();
             $(".main-navigation").addClass("showing-sub-navs");
         } else {
+            // hide the submenus if clicking on a top level nav item when the menus are visible
             $(".main-navigation").removeClass("showing-sub-navs");
         }
         
     });
     
+    
+    // hover behavior
     $(".menu-item-has-children").mouseenter(function(){
-        
-        //get parent and child elements
         var parentLI = $(this).parents(".menu-item-has-children"),
             childUL = $(this).children("ul");
-        console.log ( parentLI.length );
         if ( $(".main-navigation").hasClass("showing-sub-navs") ){
             $(".menu-item-has-children").not(parentLI).children("ul").css("left", "-999em");
             // different behavior for second and third level navs
