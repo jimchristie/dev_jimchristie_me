@@ -181,8 +181,12 @@ jQuery(document).ready(function($){
     $(".menu-item-has-children").mouseout(function(){
         $(this).removeClass("focus");
     });
+    $(".nav-menu > .menu-item-has-children > a").on("click", function(e){
+        e.preventDefault();
+    });
     
     $(".main-navigation .menu-item-has-children a").on("click", function(e){
+            //e.stopPropagation();
         if ( !$(".main-navigation").hasClass("showing-sub-navs")){
             $(this).parent(".menu-item-has-children").children("ul").css("left","auto");
             e.stopPropagation();
@@ -194,111 +198,22 @@ jQuery(document).ready(function($){
         
     });
     
-    $("li.menu-item-has-children").hover(
-        function(){
-        
-            //get parent and child elements
-            var parentLI = $(this).parents("li.menu-item-has-children"),
-                childUL = $(this).children("ul");
-            console.log ( parentLI.length );
-            if ( $(".main-navigation").hasClass("showing-sub-navs") ){
-                $(".menu-item-has-children").not(parentLI).children("ul").css("left", "-999em");
-                // different behavior for second and third level navs
-                if ( !$(this).parents(".menu-item-has-children").length > 0 ){
-                    // second level navs 
-                    $(childUL).css("left", "auto");
-                } else {
-                    // third level navs
-                    $(childUL).css("left", "100%");
-                }
-            }
-        },
-        function(){
-            // do I need to do anything here?
-        }
-    );
-    
-    
-    
-    
-    
-    
-    
-    
-    /*
-    var hideSubNavs = function(){
-        /*$(".menu-item-has-children").removeClass("clicked");
-        $(".menu-item-has-children ul").css("left", "");
-        disableMenuHover();
-    }
-    
-    $("body").on("click", function(){
-        hideSubNavs();
-    });
-    
-    
-    
-    
-    
-    
-    
-    var disableMenuHover = function(){
-        $(".menu-item-has-children").hover(
-            function(){
-                $(this).children("ul").css("left", "-999px");
-            },
-            function(){
-                $(this).children("ul").css("");
-            }
-        );
-    }
-    disableMenuHover();
-    /*
-    
-    var reEnableMenuHover = function(){
-        $(".menu-item-has-children").hover(
-            function(){
-                $(".menu-item-has-children ul").css("left", "");
-            },
-            function(){
-                
-            }
-        )
-    }
-    
-    $(".menu-item-has-children > a").on("click", function(e){
-        
-        // hide any other nav menus that may be open
-        hideSubNavs();
-        reEnableMenuHover();
+    $(".menu-item-has-children").mouseenter(function(){
         
         //get parent and child elements
-        var thisParent = $(this).parent("li"),
-            childUL = $(thisParent).children("ul");
-        
-        e.preventDefault();
-        e.stopPropagation();
-        
-        /*
-        if ( !(thisParent).hasClass("clicked") ){
-        // show subnavs
-            $(thisParent).addClass("clicked");
+        var parentLI = $(this).parents(".menu-item-has-children"),
+            childUL = $(this).children("ul");
+        console.log ( parentLI.length );
+        if ( $(".main-navigation").hasClass("showing-sub-navs") ){
+            $(".menu-item-has-children").not(parentLI).children("ul").css("left", "-999em");
             // different behavior for second and third level navs
-            if ( !$(thisParent).parents(".menu-item-has-children").length > 0 ){
+            if ( !$(this).parents(".menu-item-has-children").length > 0 ){
                 // second level navs 
                 $(childUL).css("left", "auto");
             } else {
-                // third level navs
+                // third level navs (and beyond)
                 $(childUL).css("left", "100%");
             }
-        } else {
-        // hide subnavs
-            $(childUL).css("left", "");
-            $(thisParent).removeClass("clicked");
         }
-    */
-    
-    
-    
-    
+    });
 });
