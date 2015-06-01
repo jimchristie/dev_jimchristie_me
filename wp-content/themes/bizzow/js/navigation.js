@@ -125,6 +125,8 @@ jQuery(document).ready(function($){
         var emptySpace,
             newPadding;
         
+        
+        
         // get the width of the main-navigation div
         mainNavRect = mainNav[0].getBoundingClientRect();
         mainNavWidth = mainNavRect.right - mainNavRect.left;
@@ -138,25 +140,25 @@ jQuery(document).ready(function($){
 
         if ( mainNavWidth > totalNativeNavLiWidth ){
             $(topLevelNavLiElements).children("a").css({"padding-left": newPadding, "padding-right": newPadding});
-            
-            // set  width of sub-menus
-            $(".sub-menu").css("width", $(this).parent("li").width() );
-            
-            
+            $(".main-navigation ul, .main-navigation li, .main-navigation a").css("width", "");
             $("ul.sub-menu").each(function(){
-                $(this).width($(this).parent().width());
+                $(this).width( $(this).parent("li").width() );
             });
 
             
             
         } else if ( mainNavWidth <= totalNativeNavLiWidth ) {
             $(topLevelNavLiElements).children("a").css({"padding": ""});
+            $(".main-navigation ul, .main-navigation li, .main-navigation a").css("width", "100%");
         } else {
             console.log("Failure. Something goes wrong.");
         }
     }
     setLiWidths();
     $(window).resize(function(){
+        setLiWidths();
+    });
+    $(".menu-toggle").on("click", function(){
         setLiWidths();
     });
     
